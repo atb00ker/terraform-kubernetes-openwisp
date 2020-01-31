@@ -1,0 +1,11 @@
+### kubernetes_services
+
+Configuration for OpenWISP kubernetes services.
+
+```
+use_cert_manger   : (Boolean) Install cert-manager and get TLS certificates for the Ingress.
+                      1. You need `kubectl` pre-configured on your machine.
+                      2. Your domain should be pointing at your Ingress's IP for http01 validation.
+                      3. If used with GCP module, "gcloud_configure" option might be helpful.
+cert_manager_link : Link of YAML file to use to install cert-manager.
+```

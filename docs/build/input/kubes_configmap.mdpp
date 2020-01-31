@@ -1,0 +1,11 @@
+### kubes_common_configmap
+
+Options for common configmap avaiable in the docker-openwisp repository documentation.
+
+### kubes_postgres_configmap
+
+Options for common configmap avaiable in the docker-openwisp repository documentation.
+
+### kubes_nfs_configmap
+
+Options for common configmap avaiable in the docker-openwisp repository documentation.

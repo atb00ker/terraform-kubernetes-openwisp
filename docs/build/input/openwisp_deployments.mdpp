@@ -1,0 +1,27 @@
+### openwisp_deployments
+
+Basic options for all the OpenWISP deployment containers.
+
+```
+image_pull_policy   : https://www.terraform.io/docs/providers/kubernetes/r/deployment.html#image_pull_policy
+restart_policy      : https://www.terraform.io/docs/providers/kubernetes/r/deployment.html#restart_policy
+dashboard:
+    replicas        : https://www.terraform.io/docs/providers/kubernetes/r/deployment.html#replicas
+    image           : https://www.terraform.io/docs/providers/kubernetes/r/deployment.html#image
+    limit_cpu       : CPU limit for each pod
+    requests_cpu    : Minimum CPU requirement for each pod
+    limit_memory    : Memory limit for each pod
+    requests_memory : Minimum memory requirement for each pod
+controller:  **Same as dashboard options
+radius:      **Same as dashboard options
+topology:    **Same as dashboard options
+nginx:       **Same as dashboard options
+postgres:    **Same as dashboard options
+postfix:     **Same as dashboard options
+freeradius:  **Same as dashboard options
+openvpn:     **Same as dashboard options
+openvpn:     **Same as dashboard options
+celery:      **Same as dashboard options
+celerybeat:  **Same as dashboard options
+redis:       **Same as dashboard options
+```

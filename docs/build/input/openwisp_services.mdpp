@@ -1,0 +1,11 @@
+### openwisp_services
+
+Flags for enabling/disabling OpenWISP services to be used.
+
+```
+use_openvpn    : (Boolean) Setup OpenVPN for management inside cluster.
+use_freeradius : (Boolean) Setup freeradius inside cluster.
+setup_database : (Boolean) Setup database inside cluster. You would want to
+                    set this as false when you have your own database server or
+                    you are using cloud SQL.
+```

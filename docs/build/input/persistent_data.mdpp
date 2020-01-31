@@ -1,0 +1,21 @@
+### persistent_data
+
+Persistent storage information for the cluster.
+
+```
+name                         : https://www.terraform.io/docs/providers/google/r/compute_disk.html#name
+type                         : https://www.terraform.io/docs/providers/google/r/compute_disk.html#type
+size                         : https://www.terraform.io/docs/providers/google/r/compute_disk.html#size
+reclaim_policy               : https://www.terraform.io/docs/providers/kubernetes/r/storage_class.html#reclaim_policy
+postgres_storage_size        : Disk size portion to be allocated for postgres database.
+postfix_sslcert_storage_size : Disk size portion to be allocated for storing postfix data.
+media_storage_size           : Disk size portion to be allocated for user uploaded media (like floor plan).
+static_storage_size          : Disk size portion to be allocated for static data of the website.
+html_storage_size            : Disk size portion to be allocated for maintaince HTML.
+nfs_server:
+internal_ip                  : Valid ClusterIP to be reserved for NFS server.
+limit_cpu                    : CPU limit for the pod
+requests_cpu                 : Minimum CPU requirement for the pod
+limit_memory                 : Memory limit for the pod
+requests_memory              : Minimum memory requirement for the pod
+```

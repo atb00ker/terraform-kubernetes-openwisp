@@ -1,0 +1,3 @@
+### ow_kubectl_ready
+
+(Boolean) Signal for kubectl configured and ready on local machine.

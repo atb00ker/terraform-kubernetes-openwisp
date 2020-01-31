@@ -1,0 +1,3 @@
+### ow_cluster_ready
+
+(Boolean) Resource creation starts when this signal is received, useful for other modules to report when cluster is ready for deployment.

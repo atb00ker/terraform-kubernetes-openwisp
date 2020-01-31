@@ -1,0 +1,18 @@
+### infrastructure_provider
+
+Details about the infrastructure.
+
+```
+name                            : Name of the provider.
+                                  Valid options are: ["google",]
+http_loadbalancer_name          : Name of the http_loadbalancer. (Useful for annotations in kubernetes Ingress)
+openvpn_loadbalancer_address    : IP Address to be assigned for openvpn kubernetes loadbalancer.
+freeradius_loadbalancer_address : IP Address to be assigned for freeradius kubernetes loadbalancer.
+cluster:
+name                            : Name of the kubernetes cluster.
+cluster_ip_range                : Address range for ClusterIP services.
+pod_ip_range                    : Address range for pods.
+endpoint                        : Kubernetes cluster endpoint IP address. (example: 192.168.2.25)
+ca_certificate                  : ca_certificate of the cluster that needs to be converted to base64 for authentication.
+access_token                    : Access token required for authentication to perform actions in the cluster.
+```
