@@ -112,7 +112,7 @@ module "kubernetes" {
 
   kubernetes_services = {
     use_cert_manger   = true
-    cert_manager_link = "https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml"
+    cert_manager_link = "https://github.com/jetstack/cert-manager/releases/download/v0.13.0/cert-manager.yaml"
   }
 
   persistent_data = {
