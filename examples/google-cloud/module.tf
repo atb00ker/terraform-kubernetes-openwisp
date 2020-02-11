@@ -1,7 +1,6 @@
 module "infrastructure" {
   source  = "atb00ker/openwisp/gcp"
-  version = "0.1.0-alpha.3"
-
+  version = "0.1.0-alpha.4"
   google_services = {
     service_account             = file("account.json")
     project_id                  = "sample"
@@ -84,17 +83,17 @@ module "infrastructure" {
 
   network_config = {
     # OpenWISP deployment network options
-    vpc_name                      = "openwisp-network"
-    subnet_name                   = "openwisp-cluster-subnet"
-    subnet_cidr                   = "10.130.0.0/20"
-    services_secondary_range_cidr = "10.0.0.0/14"
-    cluster_secondary_range_cidr  = "10.100.0.0/14"
-    http_loadbalancer_ip_name     = "openwisp-http-loadbalancer-ip"
-    openvpn_ip_name               = "openwisp-openvpn-ip"
-    freeradius_ip_name            = "openwisp-freeradius-ip"
-    openwisp_dns_name             = "atb00ker.tk"
-    openwisp_dns_zone_name        = "openwisp-dns"
-    openwisp_dns_records_ttl      = 300
+    vpc_name                  = "openwisp-network"
+    subnet_name               = "openwisp-cluster-subnet"
+    subnet_cidr               = "10.130.0.0/20"
+    services_cidr_range       = "10.0.0.0/14"
+    pods_cidr_range           = "10.100.0.0/14"
+    http_loadbalancer_ip_name = "openwisp-http-loadbalancer-ip"
+    openvpn_ip_name           = "openwisp-openvpn-ip"
+    freeradius_ip_name        = "openwisp-freeradius-ip"
+    openwisp_dns_name         = "atb00ker.tk"
+    openwisp_dns_zone_name    = "openwisp-dns"
+    openwisp_dns_records_ttl  = 300
     subnet_flowlogs = {
       enable   = true
       interval = "INTERVAL_10_MIN"
@@ -106,7 +105,7 @@ module "infrastructure" {
 
 module "kubernetes" {
   source                  = "atb00ker/openwisp/kubernetes"
-  version                 = "0.1.0-alpha.1"
+  version                 = "0.1.0-alpha.2"
   ow_cluster_ready        = module.infrastructure.ow_cluster_ready
   infrastructure_provider = module.infrastructure.infrastructure_provider
   openwisp_services       = module.infrastructure.openwisp_services
@@ -136,36 +135,21 @@ module "kubernetes" {
     postgres_storage_size        = "3Gi"
   }
 
-  kubes_postgres_configmap = {
-    # The configurations for postgres instance
-    configmap_name    = "postgres-config"
-    POSTGRES_DB       = "openwisp_db"
-    POSTGRES_USER     = "admin"
-    POSTGRES_PASSWORD = "admin"
-  }
-
-  kubes_nfs_configmap = {
-    # The configurations for nfs-server.
-    configmap_name = "nfs-config"
-    EXPORT_DIR     = "/exports"
-    EXPORT_OPTS    = "${module.infrastructure.infrastructure_provider.cluster.cluster_ip_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync)"
-  }
-
-  kubes_common_configmap = {
+  kubernetes_configmap = {
     # The configurations for pods, these configurations are
     # shared between all pods except the postgres pod which
     # has seperate config variable. Read about the options
     # in the documentation. (docs/ENV.md)
-    configmap_name                    = "common-config"
-    DASHBOARD_DOMAIN                  = "dashboard.openwisp.org"
-    CONTROLLER_DOMAIN                 = "controller.openwisp.org"
-    RADIUS_DOMAIN                     = "radius.openwisp.org"
-    TOPOLOGY_DOMAIN                   = "topology.openwisp.org"
+    common_configmap_name             = "common-config"
+    postgres_configmap_name           = "postgres-config"
+    nfs_configmap_name                = "nfs-config"
+    DASHBOARD_DOMAIN                  = "dashboard.example.com"
+    CONTROLLER_DOMAIN                 = "controller.example.com"
+    RADIUS_DOMAIN                     = "radius.example.com"
+    TOPOLOGY_DOMAIN                   = "topology.example.com"
     EMAIL_DJANGO_DEFAULT              = "example@example.com"
-    DB_USER                           = "admin"
-    DB_PASS                           = "admin"
     DJANGO_SECRET_KEY                 = "default_secret_key"
-    DJANGO_ALLOWED_HOSTS              = "*"
+    DJANGO_ALLOWED_HOSTS              = ".example.com"
     TZ                                = "UTC"
     CERT_ADMIN_EMAIL                  = "example@example.com"
     SSL_CERT_MODE                     = false
@@ -173,6 +157,8 @@ module "kubernetes" {
     SET_TOPOLOGY_TASKS                = true
     DB_NAME                           = "openwisp_db"
     DB_ENGINE                         = "django.contrib.gis.db.backends.postgis"
+    DB_USER                           = "admin"
+    DB_PASS                           = "admin"
     DB_PORT                           = 5432
     DB_OPTIONS                        = "{}"
     DJANGO_X509_DEFAULT_CERT_VALIDITY = 1825
@@ -247,6 +233,10 @@ module "kubernetes" {
     TOPOLOGY_APP_PORT                 = 8003
     DASHBOARD_URI                     = "dashboard-internal"
     POSTFIX_DEBUG_MYNETWORKS          = "null"
+    EXPORT_DIR                        = "/exports"
+    EXPORT_OPTS                       = <<EOT
+    ${module.infrastructure.infrastructure_provider.cluster.services_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync) ${module.infrastructure.infrastructure_provider.cluster.pods_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync) ${module.infrastructure.infrastructure_provider.cluster.nodes_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync)
+    EOT
   }
 
   openwisp_deployments = {

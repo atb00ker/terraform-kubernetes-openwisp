@@ -1,6 +1,7 @@
 # Terraform(kubernetes): OpenWISP
 
 [![Terraform](https://img.shields.io/badge/terraform-openwisp-blue)](https://registry.terraform.io/modules/atb00ker/openwisp/kubernetes)
+[![GitHub](https://img.shields.io/badge/github-openwisp-success)](https://github.com/openwisp/terraform-kubernetes-openwisp/)
 [![GitHub license](https://img.shields.io/github/license/atb00ker/terraform-kubernetes-openwisp.svg)](https://github.com/openwisp/terraform-kubernetes-openwisp/blob/master/LICENSE)
 
 Terraform files for deploying docker-openwisp in kubernetes.

@@ -20,7 +20,7 @@ locals {
     {
       "name" : "openwisp-postgres", "app" : "openwisp-postgres",
       "deployment_config" : var.openwisp_deployments.postgres
-      "configmap" : kubernetes_config_map.kubes_postgres_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_postgres_configmap.metadata.0.name
       "volume_mount" : [local._volume_mounts.postgres],
       "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
@@ -31,7 +31,7 @@ locals {
     {
       "name" : "openwisp-freeradius", "app" : "openwisp-freeradius",
       "deployment_config" : var.openwisp_deployments.freeradius
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
     }
@@ -41,7 +41,7 @@ locals {
     {
       "name" : "openwisp-openvpn", "app" : "openwisp-openvpn",
       "deployment_config" : var.openwisp_deployments.openvpn
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : ["NET_ADMIN"], "env" : [],
     }
@@ -51,7 +51,7 @@ locals {
     {
       "name" : "openwisp-dashboard", "app" : "openwisp-dashboard",
       "deployment_config" : var.openwisp_deployments.dashboard
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [local._volume_mounts.static, local._volume_mounts.media],
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "liveness_technique" : null, "openports" : [], "capabilities" : [], "env" : [],
@@ -59,21 +59,21 @@ locals {
     {
       "name" : "openwisp-controller", "app" : "openwisp-controller",
       "deployment_config" : var.openwisp_deployments.controller, "env" : [],
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name,
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "volume_mount" : [], "liveness_technique" : null, "openports" : [], "capabilities" : [],
     },
     {
       "name" : "openwisp-radius", "app" : "openwisp-radius",
       "deployment_config" : var.openwisp_deployments.radius, "env" : [],
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name,
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "volume_mount" : [], "liveness_technique" : null, "openports" : [], "capabilities" : [],
     },
     {
       "name" : "openwisp-topology", "app" : "openwisp-topology",
       "deployment_config" : var.openwisp_deployments.topology
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [local._volume_mounts.media],
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "liveness_technique" : null, "openports" : [], "capabilities" : [], "env" : [],
@@ -81,7 +81,7 @@ locals {
     {
       "name" : "openwisp-nginx", "app" : "openwisp-nginx",
       "deployment_config" : var.openwisp_deployments.nginx
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [
         merge(local._volume_mounts.static, { read_only : "true" }),
         merge(local._volume_mounts.media, { read_only : "true" }),
@@ -98,7 +98,7 @@ locals {
     {
       "name" : "openwisp-postfix", "app" : "openwisp-postfix",
       "deployment_config" : var.openwisp_deployments.postfix
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [local._volume_mounts.postfix],
       "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
@@ -106,7 +106,7 @@ locals {
     {
       "name" : "openwisp-celery", "app" : "openwisp-celery",
       "deployment_config" : var.openwisp_deployments.celery
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [],
       "env" : [
@@ -116,7 +116,7 @@ locals {
     {
       "name" : "openwisp-celerybeat", "app" : "openwisp-celerybeat",
       "deployment_config" : var.openwisp_deployments.celerybeat
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [],
       "env" : [
@@ -126,7 +126,7 @@ locals {
     {
       "name" : "redis", "app" : "redis",
       "deployment_config" : var.openwisp_deployments.redis
-      "configmap" : kubernetes_config_map.kubes_common_configmap.metadata.0.name
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
     },
@@ -140,8 +140,12 @@ locals {
 
 # TODO: Dahpne & Websocket are not implemented
 resource "kubernetes_deployment" "openwisp_deployments" {
-  depends_on = [var.ow_cluster_ready, kubernetes_persistent_volume_claim.openwisp_persistent_volume_claim]
-  count      = length(local.openwisp_deployments)
+  depends_on = [
+    var.ow_cluster_ready,
+    kubernetes_persistent_volume_claim.openwisp_persistent_volume_claim,
+    kubernetes_deployment.nfs_server
+  ]
+  count = length(local.openwisp_deployments)
   metadata { name = local.openwisp_deployments[count.index].name }
 
   spec {

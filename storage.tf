@@ -81,6 +81,9 @@ resource "kubernetes_deployment" "nfs_server" {
           name              = "nfs-server"
           image_pull_policy = var.openwisp_deployments.image_pull_policy
           security_context { privileged = true }
+          env_from {
+            config_map_ref { name = kubernetes_config_map.kubernetes_nfs_configmap.metadata.0.name }
+          }
           resources {
             limits {
               cpu    = var.persistent_data.nfs_server.limit_cpu

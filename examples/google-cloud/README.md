@@ -15,6 +15,13 @@ This deployment example is for deploying OpenWISP on Google Kubernetes Engine.
 1. Configure the options in the module. (`examples/google-cloud/module.tf` might be helpful)
 2. Apply the configurations: `terraform apply`
 3. Remember to set the NS records in your domain registrar before `cert-manager` start `http01` verification of the domain.
+4. Destroy resources only required for management (Creation / Updation)
+
+```bash
+terraform destroy \
+    --target=module.infrastructure.google_compute_router.openwisp_cluster_router \
+    --target=module.infrastructure.google_compute_router_nat.openwisp_connection_nat
+```
 
 ### Destroy
 

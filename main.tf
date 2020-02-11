@@ -1,10 +1,10 @@
 # Entry point for terraform.
 
 terraform {
-  required_version = "~> 0.12.6"
+  required_version = "~> 0.12.18"
   required_providers {
-    kubernetes = "~> 1.10"
-    null       = "~> 2.1"
+    kubernetes = "~> 1.10.0"
+    null       = "~> 2.1.0"
   }
 }
 

@@ -1,6 +1,6 @@
 module "kubernetes" {
   source           = "atb00ker/openwisp/kubernetes"
-  version          = "0.1.0-alpha.1"
+  version          = "0.1.0-alpha.2"
   ow_cluster_ready = true
   infrastructure_provider = {
     name                            = "google"
@@ -8,10 +8,13 @@ module "kubernetes" {
     openvpn_loadbalancer_address    = "192.168.2.10"
     freeradius_loadbalancer_address = "192.168.2.20"
     cluster = {
-      name           = "openwisp-cluster"
-      endpoint       = "192.168.2.80"
-      ca_certificate = "LS0--long--ca-certificate--value--"
-      access_token   = "ya29.c.--long--access-token--value--"
+      name                = "openwisp-cluster"
+      endpoint            = "192.168.2.80"
+      ca_certificate      = "LS0--long--ca-certificate--value--"
+      access_token        = "ya29.c.--long--access-token--value--"
+      nodes_cidr_range    = "192.168.2.81"
+      pods_cidr_range     = "192.168.2.82"
+      services_cidr_range = "192.168.2.83"
     }
   }
 
@@ -23,7 +26,7 @@ module "kubernetes" {
 
   kubernetes_services = {
     use_cert_manger   = true
-    cert_manager_link = "https://github.com/jetstack/cert-manager/releases/download/v0.13.0/cert-manager.yaml"
+    cert_manager_link = "https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml"
   }
 
   persistent_data = {
@@ -33,7 +36,7 @@ module "kubernetes" {
       limit_cpu       = 12
       requests_cpu    = 0.01
       limit_memory    = "100Gi"
-      requests_memory = "50Mi"
+      requests_memory = "100Mi"
     }
     persistent_disk_name         = "openwisp-disk"
     persistent_disk_type         = "pd-standard"
@@ -46,36 +49,21 @@ module "kubernetes" {
     postgres_storage_size        = "3Gi"
   }
 
-  kubes_postgres_configmap = {
-    # The configurations for postgres instance.
-    configmap_name    = "postgres-config"
-    POSTGRES_DB       = "openwisp_db"
-    POSTGRES_USER     = "admin"
-    POSTGRES_PASSWORD = "admin"
-  }
-
-  kubes_nfs_configmap = {
-    # The configurations for nfs-server.
-    configmap_name = "nfs-config"
-    EXPORT_DIR     = "/exports"
-    EXPORT_OPTS    = "*(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync)"
-  }
-
-  kubes_common_configmap = {
+  kubernetes_configmap = {
     # The configurations for pods, these configurations are
     # shared between all pods except the postgres pod which
     # has seperate config variable. Read about the options
     # in the documentation. (docs/ENV.md)
-    configmap_name                    = "common-config"
-    DASHBOARD_DOMAIN                  = "dashboard.openwisp.org"
-    CONTROLLER_DOMAIN                 = "controller.openwisp.org"
-    RADIUS_DOMAIN                     = "radius.openwisp.org"
-    TOPOLOGY_DOMAIN                   = "topology.openwisp.org"
+    common_configmap_name             = "common-config"
+    postgres_configmap_name           = "postgres-config"
+    nfs_configmap_name                = "nfs-config"
+    DASHBOARD_DOMAIN                  = "dashboard.example.com"
+    CONTROLLER_DOMAIN                 = "controller.example.com"
+    RADIUS_DOMAIN                     = "radius.example.com"
+    TOPOLOGY_DOMAIN                   = "topology.example.com"
     EMAIL_DJANGO_DEFAULT              = "example@example.com"
-    DB_USER                           = "admin"
-    DB_PASS                           = "admin"
     DJANGO_SECRET_KEY                 = "default_secret_key"
-    DJANGO_ALLOWED_HOSTS              = "*"
+    DJANGO_ALLOWED_HOSTS              = ".example.com"
     TZ                                = "UTC"
     CERT_ADMIN_EMAIL                  = "example@example.com"
     SSL_CERT_MODE                     = false
@@ -83,6 +71,8 @@ module "kubernetes" {
     SET_TOPOLOGY_TASKS                = true
     DB_NAME                           = "openwisp_db"
     DB_ENGINE                         = "django.contrib.gis.db.backends.postgis"
+    DB_USER                           = "admin"
+    DB_PASS                           = "admin"
     DB_PORT                           = 5432
     DB_OPTIONS                        = "{}"
     DJANGO_X509_DEFAULT_CERT_VALIDITY = 1825
@@ -157,6 +147,8 @@ module "kubernetes" {
     TOPOLOGY_APP_PORT                 = 8003
     DASHBOARD_URI                     = "dashboard-internal"
     POSTFIX_DEBUG_MYNETWORKS          = "null"
+    EXPORT_DIR                        = "/exports"
+    EXPORT_OPTS                       = "*(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync)"
   }
 
   openwisp_deployments = {

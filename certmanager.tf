@@ -44,7 +44,7 @@ resource "null_resource" "clusterissuer_cert_manager" {
                   spec:
                     acme:
                       server: https://acme-v02.api.letsencrypt.org/directory
-                      email: ${var.kubes_common_configmap.CERT_ADMIN_EMAIL}
+                      email: ${var.kubernetes_configmap.CERT_ADMIN_EMAIL}
                       privateKeySecretRef:
                         name: letsencrypt-prod
                       solvers:
@@ -75,10 +75,10 @@ resource "null_resource" "certificate_cert_manager" {
                     secretName: openwisp-tls-secret
                     renewBefore: 12h
                     dnsNames:
-                    - ${var.kubes_common_configmap.DASHBOARD_DOMAIN}
-                    - ${var.kubes_common_configmap.CONTROLLER_DOMAIN}
-                    - ${var.kubes_common_configmap.RADIUS_DOMAIN}
-                    - ${var.kubes_common_configmap.TOPOLOGY_DOMAIN}
+                    - ${var.kubernetes_configmap.DASHBOARD_DOMAIN}
+                    - ${var.kubernetes_configmap.CONTROLLER_DOMAIN}
+                    - ${var.kubernetes_configmap.RADIUS_DOMAIN}
+                    - ${var.kubernetes_configmap.TOPOLOGY_DOMAIN}
                     issuerRef:
                       name: letsencrypt-issuer
                       kind: ClusterIssuer
@@ -101,10 +101,10 @@ resource "null_resource" "ingress_cert_manager" {
                       "tls": [
                           {
                             "hosts": [
-                              "${var.kubes_common_configmap.DASHBOARD_DOMAIN}",
-                              "${var.kubes_common_configmap.CONTROLLER_DOMAIN}",
-                              "${var.kubes_common_configmap.RADIUS_DOMAIN}",
-                              "${var.kubes_common_configmap.TOPOLOGY_DOMAIN}"
+                              "${var.kubernetes_configmap.DASHBOARD_DOMAIN}",
+                              "${var.kubernetes_configmap.CONTROLLER_DOMAIN}",
+                              "${var.kubernetes_configmap.RADIUS_DOMAIN}",
+                              "${var.kubernetes_configmap.TOPOLOGY_DOMAIN}"
                             ], "secretName": "openwisp-tls-secret"
                           }
                       ]

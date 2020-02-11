@@ -7,10 +7,13 @@ variable "infrastructure_provider" {
     openvpn_loadbalancer_address    = string
     freeradius_loadbalancer_address = string
     cluster = object({
-      name           = string
-      endpoint       = string
-      access_token   = string
-      ca_certificate = string
+      name                = string
+      endpoint            = string
+      access_token        = string
+      ca_certificate      = string
+      nodes_cidr_range    = string
+      pods_cidr_range     = string
+      services_cidr_range = string
     })
   })
   description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
@@ -66,35 +69,18 @@ variable "persistent_data" {
   description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
 }
 
-variable "kubes_postgres_configmap" {
+variable "kubernetes_configmap" {
   type = object({
-    configmap_name    = string
-    POSTGRES_DB       = string
-    POSTGRES_USER     = string
-    POSTGRES_PASSWORD = string
-  })
-  description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
-}
-
-variable "kubes_nfs_configmap" {
-  type = object({
-    configmap_name = string
-    EXPORT_DIR     = string
-    EXPORT_OPTS    = string
-  })
-  description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
-}
-
-variable "kubes_common_configmap" {
-  type = object({
-    configmap_name                    = string
+    common_configmap_name             = string
+    postgres_configmap_name           = string
+    nfs_configmap_name                = string
+    EXPORT_DIR                        = string
+    EXPORT_OPTS                       = string
     DASHBOARD_DOMAIN                  = string
     CONTROLLER_DOMAIN                 = string
     RADIUS_DOMAIN                     = string
     TOPOLOGY_DOMAIN                   = string
     EMAIL_DJANGO_DEFAULT              = string
-    DB_USER                           = string
-    DB_PASS                           = string
     DJANGO_SECRET_KEY                 = string
     DJANGO_ALLOWED_HOSTS              = string
     TZ                                = string
@@ -106,6 +92,8 @@ variable "kubes_common_configmap" {
     DB_ENGINE                         = string
     DB_PORT                           = number
     DB_OPTIONS                        = string
+    DB_USER                           = string
+    DB_PASS                           = string
     DJANGO_X509_DEFAULT_CERT_VALIDITY = number
     DJANGO_X509_DEFAULT_CA_VALIDITY   = number
     DJANGO_CORS_ORIGIN_ALLOW_ALL      = bool
