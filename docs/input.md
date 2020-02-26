@@ -2,7 +2,7 @@
 
 The `eight` input variables are docuemented below:
 
-1\.  [infrastructure_provider](#infrastructure_provider)  
+1\.  [infrastructure](#infrastructure)  
 2\.  [kubernetes_services](#kubernetes_services)  
 3\.  [ow_cluster_ready](#ow_cluster_ready)  
 4\.  [ow_kubectl_ready](#ow_kubectl_ready)  
@@ -11,9 +11,9 @@ The `eight` input variables are docuemented below:
 7\.  [kubernetes_configmap](#kubernetes_configmap)  
 8\.  [openwisp_deployments](#openwisp_deployments)  
 
-<a name="infrastructure_provider"></a>
+<a name="infrastructure"></a>
 
-### 1\. infrastructure_provider
+### 1\. infrastructure
 
 Details about the infrastructure.
 
@@ -31,6 +31,16 @@ services_cidr_range             : Address range for ClusterIP services.
 endpoint                        : Kubernetes cluster endpoint IP address. (example: 192.168.2.25)
 ca_certificate                  : ca_certificate of the cluster that needs to be decoded in base64 for authentication.
 access_token                    : Access token required for authentication to perform actions in the cluster.
+database:
+enabled                         : Flag for cloud provided database being used. (Like Google Cloud SQL)
+sslmode                         : [PSQL database sslmodes](https://www.postgresql.org/docs/9.1/libpq-ssl.html)
+ca_cert                         : Contents of the server certificate file
+client_cert                     : Contents of the client certificate file
+client_key                      : Contents of the client private key
+username                        : Username to login to database
+password                        : Password to login to database
+name                            : Name of the database to be used by openwisp
+host                            : IP address of the database server
 ```
 <a name="kubernetes_services"></a>
 
@@ -67,6 +77,8 @@ use_freeradius : (Boolean) Setup freeradius inside cluster.
 setup_database : (Boolean) Setup database inside cluster. You would want to
                     set this as false when you have your own database server or
                     you are using cloud SQL.
+setup_fresh    : (Boolean) Flag to initial setup of openwisp. Only required when you
+                    are setting up openwisp & openwisp-database for the first time.
 ```
 <a name="persistent_data"></a>
 
@@ -80,7 +92,7 @@ type                         : https://www.terraform.io/docs/providers/google/r/
 size                         : https://www.terraform.io/docs/providers/google/r/compute_disk.html#size
 reclaim_policy               : https://www.terraform.io/docs/providers/kubernetes/r/storage_class.html#reclaim_policy
 postgres_storage_size        : Disk size portion to be allocated for postgres database.
-postfix_sslcert_storage_size : Disk size portion to be allocated for storing postfix data.
+sslcert_storage_size         : Disk size portion to be allocated for storing postfix sslcert data.
 media_storage_size           : Disk size portion to be allocated for user uploaded media (like floor plan).
 static_storage_size          : Disk size portion to be allocated for static data of the website.
 html_storage_size            : Disk size portion to be allocated for maintaince HTML.
@@ -95,7 +107,9 @@ requests_memory              : Minimum memory requirement for the pod
 
 ### 7\. kubernetes_configmap
 
-Options for common configmap avaiable in the docker-openwisp repository documentation.
+Options for configmaps are the same as the one available for docker-openwisp image [environment options](https://github.com/openwisp/docker-openwisp/blob/master/docs/ENV.md)
+
+However, some database options are set in the infrastructure variable.
 <a name="openwisp_deployments"></a>
 
 ### 8\. openwisp_deployments
@@ -115,13 +129,13 @@ dashboard:
 controller:  **Same as dashboard options
 radius:      **Same as dashboard options
 topology:    **Same as dashboard options
-nginx:       **Same as dashboard options
-postgres:    **Same as dashboard options
-postfix:     **Same as dashboard options
-freeradius:  **Same as dashboard options
-openvpn:     **Same as dashboard options
-openvpn:     **Same as dashboard options
 celery:      **Same as dashboard options
 celerybeat:  **Same as dashboard options
+nginx:       **Same as dashboard options
+websocket:   **Same as dashboard options
+freeradius:  **Same as dashboard options
+openvpn:     **Same as dashboard options
+postfix:     **Same as dashboard options
+postgres:    **Same as dashboard options
 redis:       **Same as dashboard options
 ```

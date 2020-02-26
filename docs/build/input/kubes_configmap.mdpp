@@ -1,3 +1,5 @@
 ### kubernetes_configmap
 
-Options for common configmap avaiable in the docker-openwisp repository documentation.
+Options for configmaps are the same as the one available for docker-openwisp image [environment options](https://github.com/openwisp/docker-openwisp/blob/master/docs/ENV.md)
+
+However, some database options are set in the infrastructure variable.

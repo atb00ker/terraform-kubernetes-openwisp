@@ -1,8 +1,9 @@
 module "kubernetes" {
-  source           = "atb00ker/openwisp/kubernetes"
-  version          = "0.1.0-alpha.2"
+  source  = "atb00ker/openwisp/kubernetes"
+  version = "0.1.0-alpha.3"
+
   ow_cluster_ready = true
-  infrastructure_provider = {
+  infrastructure = {
     name                            = "google"
     http_loadbalancer_name          = "openwisp-http-loadbalancer-ip"
     openvpn_loadbalancer_address    = "192.168.2.10"
@@ -16,12 +17,24 @@ module "kubernetes" {
       pods_cidr_range     = "192.168.2.82"
       services_cidr_range = "192.168.2.83"
     }
+    database = {
+      enabled     = false
+      sslmode     = "disabled"
+      ca_cert     = "--server-certificate-file-content--"
+      client_cert = "--client-certificate-file-content--"
+      client_key  = "--private-file-file-content--"
+      username    = "admin"
+      password    = "admin"
+      name        = "openwisp_db"
+      host        = "192.168.2.54"
+    }
   }
 
   openwisp_services = {
-    use_openvpn    = true
+    use_openvpn    = false
     use_freeradius = true
     setup_database = true
+    setup_fresh    = true
   }
 
   kubernetes_services = {
@@ -38,15 +51,15 @@ module "kubernetes" {
       limit_memory    = "100Gi"
       requests_memory = "100Mi"
     }
-    persistent_disk_name         = "openwisp-disk"
-    persistent_disk_type         = "pd-standard"
-    persistent_disk_size         = 10
-    reclaim_policy               = "Retain"
-    postfix_sslcert_storage_size = "50Mi"
-    media_storage_size           = "5Gi"
-    static_storage_size          = "50Mi"
-    html_storage_size            = "100Mi"
-    postgres_storage_size        = "3Gi"
+    persistent_disk_name  = "openwisp-disk"
+    persistent_disk_type  = "pd-standard"
+    persistent_disk_size  = 10
+    reclaim_policy        = "Retain"
+    sslcert_storage_size  = "50Mi"
+    media_storage_size    = "5Gi"
+    static_storage_size   = "50Mi"
+    html_storage_size     = "100Mi"
+    postgres_storage_size = "3Gi"
   }
 
   kubernetes_configmap = {
@@ -54,9 +67,6 @@ module "kubernetes" {
     # shared between all pods except the postgres pod which
     # has seperate config variable. Read about the options
     # in the documentation. (docs/ENV.md)
-    common_configmap_name             = "common-config"
-    postgres_configmap_name           = "postgres-config"
-    nfs_configmap_name                = "nfs-config"
     DASHBOARD_DOMAIN                  = "dashboard.example.com"
     CONTROLLER_DOMAIN                 = "controller.example.com"
     RADIUS_DOMAIN                     = "radius.example.com"
@@ -66,13 +76,10 @@ module "kubernetes" {
     DJANGO_ALLOWED_HOSTS              = ".example.com"
     TZ                                = "UTC"
     CERT_ADMIN_EMAIL                  = "example@example.com"
-    SSL_CERT_MODE                     = false
+    SSL_CERT_MODE                     = "External"
     SET_RADIUS_TASKS                  = true
     SET_TOPOLOGY_TASKS                = true
-    DB_NAME                           = "openwisp_db"
     DB_ENGINE                         = "django.contrib.gis.db.backends.postgis"
-    DB_USER                           = "admin"
-    DB_PASS                           = "admin"
     DB_PORT                           = 5432
     DB_OPTIONS                        = "{}"
     DJANGO_X509_DEFAULT_CERT_VALIDITY = 1825
@@ -83,6 +90,7 @@ module "kubernetes" {
     DJANGO_LEAFET_CENTER_X_AXIS       = 0
     DJANGO_LEAFET_CENTER_Y_AXIS       = 0
     DJANGO_LEAFET_ZOOM                = 1
+    DJANGO_LOG_LEVEL                  = "INFO"
     EMAIL_BACKEND                     = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST_PORT                   = 25
     EMAIL_HOST_USER                   = null
@@ -117,13 +125,13 @@ module "kubernetes" {
     NGINX_GZIP_PROXIED                = "any"
     NGINX_GZIP_MIN_LENGTH             = 1000
     NGINX_GZIP_TYPES                  = "*"
-    NGINX_HTTPS_ALLOWED_IPS           = "all"
+    NGINX_HTTPS_ALLOWED_IPS           = "10.0.0.0/8"
     NGINX_HTTP_ALLOW                  = true
     NGINX_CUSTOM_FILE                 = false
-    NINGX_REAL_REMOTE_ADDR            = "$remote_addr"
+    NINGX_REAL_REMOTE_ADDR            = "$real_ip"
     VPN_ORG                           = "default"
     VPN_NAME                          = "default"
-    VPN_CLIENT_NAME                   = "default"
+    VPN_CLIENT_NAME                   = "default-vpn-client"
     X509_NAME_CA                      = "default"
     X509_NAME_CERT                    = "default"
     X509_COUNTRY_CODE                 = "IN"
@@ -133,7 +141,6 @@ module "kubernetes" {
     X509_ORGANIZATION_UNIT_NAME       = "OpenWISP"
     X509_EMAIL                        = "certificate@example.com"
     X509_COMMON_NAME                  = "OpenWISP"
-    DB_HOST                           = "postgres"
     EMAIL_HOST                        = "postfix"
     REDIS_HOST                        = "redis"
     DASHBOARD_APP_SERVICE             = "dashboard"
@@ -156,7 +163,7 @@ module "kubernetes" {
     restart_policy    = "Always"
     dashboard = {
       replicas       = 1
-      image          = "openwisp/openwisp-dashboard:latest"
+      image          = "openwisp/openwisp-dashboard:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -164,7 +171,7 @@ module "kubernetes" {
     }
     controller = {
       replicas       = 1
-      image          = "openwisp/openwisp-controller:latest"
+      image          = "openwisp/openwisp-controller:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -172,7 +179,7 @@ module "kubernetes" {
     }
     radius = {
       replicas       = 1
-      image          = "openwisp/openwisp-radius:latest"
+      image          = "openwisp/openwisp-radius:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -180,7 +187,7 @@ module "kubernetes" {
     }
     topology = {
       replicas       = 1
-      image          = "openwisp/openwisp-topology:latest"
+      image          = "openwisp/openwisp-topology:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -188,7 +195,7 @@ module "kubernetes" {
     }
     nginx = {
       replicas       = 1
-      image          = "openwisp/openwisp-nginx:latest"
+      image          = "openwisp/openwisp-nginx:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -196,7 +203,7 @@ module "kubernetes" {
     }
     postgres = {
       replicas       = 1
-      image          = "mdillon/postgis:10-alpine"
+      image          = "mdillon/postgis:11-alpine"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -204,7 +211,7 @@ module "kubernetes" {
     }
     postfix = {
       replicas       = 1
-      image          = "openwisp/openwisp-postfix:latest"
+      image          = "openwisp/openwisp-postfix:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -212,7 +219,7 @@ module "kubernetes" {
     }
     freeradius = {
       replicas       = 1
-      image          = "openwisp/openwisp-freeradius:latest"
+      image          = "openwisp/openwisp-freeradius:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -220,7 +227,7 @@ module "kubernetes" {
     }
     openvpn = {
       replicas       = 1
-      image          = "openwisp/openwisp-openvpn:latest"
+      image          = "openwisp/openwisp-openvpn:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -228,7 +235,7 @@ module "kubernetes" {
     }
     celery = {
       replicas       = 1
-      image          = "openwisp/openwisp-dashboard:latest"
+      image          = "openwisp/openwisp-dashboard:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -236,7 +243,15 @@ module "kubernetes" {
     }
     celerybeat = {
       replicas       = 1
-      image          = "openwisp/openwisp-dashboard:latest"
+      image          = "openwisp/openwisp-dashboard:alpha.1"
+      limit_cpu      = 2
+      request_cpu    = 0.001
+      limit_memory   = "2Gi"
+      request_memory = "50Mi"
+    }
+    websocket = {
+      replicas       = 1
+      image          = "openwisp/openwisp-websocket:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"

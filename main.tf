@@ -10,7 +10,7 @@ terraform {
 
 provider "kubernetes" {
   load_config_file       = false
-  host                   = "https://${var.infrastructure_provider.cluster.endpoint}"
-  token                  = var.infrastructure_provider.cluster.access_token
-  cluster_ca_certificate = base64decode(var.infrastructure_provider.cluster.ca_certificate)
+  host                   = "https://${var.infrastructure.cluster.endpoint}"
+  token                  = var.infrastructure.cluster.access_token
+  cluster_ca_certificate = base64decode(var.infrastructure.cluster.ca_certificate)
 }

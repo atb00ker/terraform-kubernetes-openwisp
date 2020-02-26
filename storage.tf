@@ -137,13 +137,13 @@ resource "kubernetes_deployment" "nfs_server" {
 
 locals {
   openwisp_volumes = var.openwisp_services.setup_database ? {
-    0 = { "name" : "postfix", "claim" : "postfix-pv-claim", "storage" : var.persistent_data.postfix_sslcert_storage_size }
+    0 = { "name" : "certs", "claim" : "certs-pv-claim", "storage" : var.persistent_data.sslcert_storage_size }
     1 = { "name" : "media", "claim" : "media-pv-claim", "storage" : var.persistent_data.media_storage_size }
     2 = { "name" : "static", "claim" : "static-pv-claim", "storage" : var.persistent_data.static_storage_size }
     3 = { "name" : "html", "claim" : "html-pv-claim", "storage" : var.persistent_data.html_storage_size }
     4 = { "name" : "postgres", "claim" : "postgres-pv-claim", "storage" : var.persistent_data.postgres_storage_size }
     } : {
-    0 = { "name" : "postfix", "claim" : "postfix-pv-claim", "storage" : var.persistent_data.postfix_sslcert_storage_size }
+    0 = { "name" : "certs", "claim" : "certs-pv-claim", "storage" : var.persistent_data.sslcert_storage_size }
     1 = { "name" : "media", "claim" : "media-pv-claim", "storage" : var.persistent_data.media_storage_size }
     2 = { "name" : "static", "claim" : "static-pv-claim", "storage" : var.persistent_data.static_storage_size }
     3 = { "name" : "html", "claim" : "html-pv-claim", "storage" : var.persistent_data.html_storage_size }
