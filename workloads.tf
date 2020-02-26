@@ -1,9 +1,43 @@
 # All the deployments for OpenWISP services
 
+# Init Job(s)
+resource "kubernetes_job" "install_postgis_on_db" {
+  count = var.infrastructure.database.enabled && var.openwisp_services.setup_fresh ? 1 : 0
+  metadata { name = "setup-openwisp" }
+  spec {
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "install-postgis"
+          image = "jbergknoff/postgresql-client"
+          args  = ["--command", "CREATE EXTENSION postgis;"]
+          env_from {
+            config_map_ref { name = kubernetes_config_map.kubernetes_postgres_configmap.metadata.0.name }
+          }
+          volume_mount {
+            name       = "postgresql-certificates"
+            mount_path = "/var/lib/postgres/ssl/"
+            read_only  = true
+          }
+        }
+        volume {
+          name = "postgresql-certificates"
+          secret {
+            secret_name  = "postgresql-certificates"
+            default_mode = "0600"
+          }
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+}
+
 locals {
   # Volume Mounts
   _init_volume_mounts = {
-    "postfix" : { claim = local.openwisp_volumes[0].claim, path = "/etc/ssl/mail", name = "openwisp-postfix-data" },
+    "postfix" : { claim = local.openwisp_volumes[0].claim, path = "/etc/ssl/mail", name = "openwisp-certs-data" },
     "media" : { claim = local.openwisp_volumes[1].claim, path = "/opt/openwisp/media", name = "user-media-data" },
     "static" : { claim = local.openwisp_volumes[2].claim, path = "/opt/openwisp/static", name = "static-files" },
     "html" : { claim = local.openwisp_volumes[3].claim, path = "/opt/openwisp/public_html", name = "openwisp-html-data" },
@@ -19,42 +53,32 @@ locals {
   _postgres_deployment = var.openwisp_services.setup_database ? [
     {
       "name" : "openwisp-postgres", "app" : "openwisp-postgres",
-      "deployment_config" : var.openwisp_deployments.postgres
-      "configmap" : kubernetes_config_map.kubernetes_postgres_configmap.metadata.0.name
+      "deployment_config" : var.openwisp_deployments.postgres,
+      "configmap" : kubernetes_config_map.kubernetes_openwisp_postgres_configmap.metadata.0.name,
       "volume_mount" : [local._volume_mounts.postgres],
       "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
-    }
-  ] : []
-
-  _freeradius_deployment = var.openwisp_services.use_freeradius ? [
-    {
-      "name" : "openwisp-freeradius", "app" : "openwisp-freeradius",
-      "deployment_config" : var.openwisp_deployments.freeradius
-      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
-      "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
-      "openports" : [], "capabilities" : [], "env" : [],
-    }
-  ] : []
-
-  _openvpn_deployment = var.openwisp_services.use_openvpn ? [
-    {
-      "name" : "openwisp-openvpn", "app" : "openwisp-openvpn",
-      "deployment_config" : var.openwisp_deployments.openvpn
-      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
-      "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
-      "openports" : [], "capabilities" : ["NET_ADMIN"], "env" : [],
+      "postgres_connection" : [],
     }
   ] : []
 
   _openwisp_deployments = [
     {
       "name" : "openwisp-dashboard", "app" : "openwisp-dashboard",
-      "deployment_config" : var.openwisp_deployments.dashboard
-      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
+      "deployment_config" : var.openwisp_deployments.dashboard,
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
       "volume_mount" : [local._volume_mounts.static, local._volume_mounts.media],
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "liveness_technique" : null, "openports" : [], "capabilities" : [], "env" : [],
+      "postgres_connection" : [1],
+    },
+    {
+      "name" : "openwisp-websocket", "app" : "openwisp-websocket",
+      "deployment_config" : var.openwisp_deployments.websocket,
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
+      "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/supervisord.pid"],
+      "volume_mount" : [], "liveness_technique" : null, "openports" : [], "capabilities" : [], "env" : [],
+      "postgres_connection" : [1],
     },
     {
       "name" : "openwisp-controller", "app" : "openwisp-controller",
@@ -62,6 +86,7 @@ locals {
       "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "volume_mount" : [], "liveness_technique" : null, "openports" : [], "capabilities" : [],
+      "postgres_connection" : [1],
     },
     {
       "name" : "openwisp-radius", "app" : "openwisp-radius",
@@ -69,6 +94,7 @@ locals {
       "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "volume_mount" : [], "liveness_technique" : null, "openports" : [], "capabilities" : [],
+      "postgres_connection" : [1],
     },
     {
       "name" : "openwisp-topology", "app" : "openwisp-topology",
@@ -77,6 +103,29 @@ locals {
       "volume_mount" : [local._volume_mounts.media],
       "readiness_technique" : "command", "readiness_command" : ["cat", "/opt/openwisp/uwsgi.pid"],
       "liveness_technique" : null, "openports" : [], "capabilities" : [], "env" : [],
+      "postgres_connection" : [1],
+    },
+    {
+      "name" : "openwisp-celery", "app" : "openwisp-celery",
+      "deployment_config" : var.openwisp_deployments.celery
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
+      "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
+      "openports" : [], "capabilities" : [],
+      "postgres_connection" : [1],
+      "env" : [
+        { "name" : "MODULE_NAME", "value" : "celery" },
+      ],
+    },
+    {
+      "name" : "openwisp-celerybeat", "app" : "openwisp-celerybeat",
+      "deployment_config" : var.openwisp_deployments.celerybeat
+      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
+      "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
+      "openports" : [], "capabilities" : [],
+      "postgres_connection" : [1],
+      "env" : [
+        { "name" : "MODULE_NAME", "value" : "celerybeat" },
+      ],
     },
     {
       "name" : "openwisp-nginx", "app" : "openwisp-nginx",
@@ -94,6 +143,7 @@ locals {
       "liveness_path" : "/status",
       "liveness_port" : "80",
       "openports" : [443, 80], "capabilities" : [], "env" : [],
+      "postgres_connection" : [],
     },
     {
       "name" : "openwisp-postfix", "app" : "openwisp-postfix",
@@ -102,26 +152,7 @@ locals {
       "volume_mount" : [local._volume_mounts.postfix],
       "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
-    },
-    {
-      "name" : "openwisp-celery", "app" : "openwisp-celery",
-      "deployment_config" : var.openwisp_deployments.celery
-      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
-      "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
-      "openports" : [], "capabilities" : [],
-      "env" : [
-        { "name" : "MODULE_NAME", "value" : "celery" },
-      ],
-    },
-    {
-      "name" : "openwisp-celerybeat", "app" : "openwisp-celerybeat",
-      "deployment_config" : var.openwisp_deployments.celerybeat
-      "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
-      "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
-      "openports" : [], "capabilities" : [],
-      "env" : [
-        { "name" : "MODULE_NAME", "value" : "celerybeat" },
-      ],
+      "postgres_connection" : [],
     },
     {
       "name" : "redis", "app" : "redis",
@@ -129,21 +160,18 @@ locals {
       "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
       "volume_mount" : [], "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
+      "postgres_connection" : [],
     },
   ]
-
-  openwisp_deployments = concat(
-    local._openwisp_deployments, local._postgres_deployment,
-    local._freeradius_deployment, local._openvpn_deployment
-  )
+  openwisp_deployments = concat(local._openwisp_deployments, local._postgres_deployment)
 }
 
-# TODO: Dahpne & Websocket are not implemented
 resource "kubernetes_deployment" "openwisp_deployments" {
   depends_on = [
     var.ow_cluster_ready,
     kubernetes_persistent_volume_claim.openwisp_persistent_volume_claim,
-    kubernetes_deployment.nfs_server
+    kubernetes_deployment.nfs_server,
+    kubernetes_job.install_postgis_on_db,
   ]
   count = length(local.openwisp_deployments)
   metadata { name = local.openwisp_deployments[count.index].name }
@@ -171,6 +199,15 @@ resource "kubernetes_deployment" "openwisp_deployments" {
             }
           }
 
+          dynamic "volume_mount" {
+            for_each = local.openwisp_deployments[count.index].postgres_connection
+            content {
+              name       = "postgresql-certificates"
+              mount_path = "/var/lib/postgres/ssl/"
+              read_only  = true
+            }
+          }
+
           dynamic "port" {
             for_each = local.openwisp_deployments[count.index].openports
             content { container_port = port.value }
@@ -184,16 +221,6 @@ resource "kubernetes_deployment" "openwisp_deployments" {
             requests {
               cpu    = local.openwisp_deployments[count.index].deployment_config.request_cpu
               memory = local.openwisp_deployments[count.index].deployment_config.request_memory
-            }
-          }
-
-          dynamic "security_context" {
-            for_each = local.openwisp_deployments[count.index].capabilities
-            content {
-              allow_privilege_escalation = true
-              capabilities {
-                add = local.openwisp_deployments[count.index].capabilities
-              }
             }
           }
 
@@ -255,6 +282,18 @@ resource "kubernetes_deployment" "openwisp_deployments" {
             }
           }
         }
+
+        dynamic "volume" {
+          for_each = local.openwisp_deployments[count.index].postgres_connection
+          content {
+            name = "postgresql-certificates"
+            secret {
+              secret_name  = "postgresql-certificates"
+              default_mode = "0600"
+            }
+          }
+        }
+
         restart_policy = var.openwisp_deployments.restart_policy
       }
     }
@@ -262,5 +301,117 @@ resource "kubernetes_deployment" "openwisp_deployments" {
       match_labels = { app = local.openwisp_deployments[count.index].app }
     }
     replicas = local.openwisp_deployments[count.index].deployment_config.replicas
+  }
+}
+
+
+resource "kubernetes_deployment" "freeradius_deployment" {
+  count      = var.openwisp_services.use_freeradius ? 1 : 0
+  depends_on = [kubernetes_persistent_volume_claim.openwisp_persistent_volume_claim]
+  metadata { name = "openwisp-freeradius" }
+
+  spec {
+    template {
+      metadata { labels = { app = "openwisp-freeradius" } }
+      spec {
+        container {
+          image             = var.openwisp_deployments.freeradius.image
+          name              = "openwisp-freeradius"
+          image_pull_policy = var.openwisp_deployments.image_pull_policy
+          env_from {
+            config_map_ref { name = kubernetes_config_map.kubernetes_common_configmap.metadata.0.name }
+          }
+
+          resources {
+            limits {
+              cpu    = var.openwisp_deployments.freeradius.limit_cpu
+              memory = var.openwisp_deployments.freeradius.limit_memory
+            }
+            requests {
+              cpu    = var.openwisp_deployments.freeradius.request_cpu
+              memory = var.openwisp_deployments.freeradius.request_memory
+            }
+          }
+          volume_mount {
+            name       = "postgresql-certificates"
+            mount_path = "/var/lib/postgres/ssl/"
+            read_only  = true
+          }
+        }
+
+        volume {
+          name = "postgresql-certificates"
+          secret {
+            secret_name  = "postgresql-certificates"
+            default_mode = "0600"
+          }
+        }
+        restart_policy = var.openwisp_deployments.restart_policy
+      }
+    }
+    selector {
+      match_labels = { app = "openwisp-freeradius" }
+    }
+    replicas = var.openwisp_deployments.freeradius.replicas
+  }
+}
+
+
+resource "kubernetes_deployment" "openvpn_deployment" {
+  count      = var.openwisp_services.use_openvpn ? 1 : 0
+  depends_on = [kubernetes_persistent_volume_claim.openwisp_persistent_volume_claim]
+  metadata { name = "openwisp-openvpn" }
+
+  spec {
+    template {
+      metadata { labels = { app = "openwisp-openvpn" } }
+      spec {
+        container {
+          image             = var.openwisp_deployments.openvpn.image
+          name              = "openwisp-openvpn"
+          image_pull_policy = var.openwisp_deployments.image_pull_policy
+          env_from {
+            config_map_ref { name = kubernetes_config_map.kubernetes_common_configmap.metadata.0.name }
+          }
+
+          security_context {
+            allow_privilege_escalation = false
+            capabilities {
+              add = ["NET_ADMIN"]
+            }
+          }
+
+          resources {
+            limits {
+              cpu    = var.openwisp_deployments.openvpn.limit_cpu
+              memory = var.openwisp_deployments.openvpn.limit_memory
+            }
+            requests {
+              cpu    = var.openwisp_deployments.openvpn.request_cpu
+              memory = var.openwisp_deployments.openvpn.request_memory
+            }
+          }
+
+          volume_mount {
+            name       = "postgresql-certificates"
+            mount_path = "/var/lib/postgres/ssl/"
+            read_only  = true
+          }
+        }
+
+        volume {
+          name = "postgresql-certificates"
+          secret {
+            secret_name  = "postgresql-certificates"
+            default_mode = "0600"
+          }
+        }
+        restart_policy = var.openwisp_deployments.restart_policy
+      }
+    }
+    selector {
+      match_labels = { app = "openwisp-openvpn" }
+    }
+    replicas = var.openwisp_deployments.openvpn.replicas
   }
 }

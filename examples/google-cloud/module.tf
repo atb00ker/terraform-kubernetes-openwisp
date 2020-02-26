@@ -1,6 +1,7 @@
 module "infrastructure" {
   source  = "atb00ker/openwisp/gcp"
-  version = "0.1.0-alpha.4"
+  version = "0.1.0-alpha.5"
+
   google_services = {
     service_account             = file("account.json")
     project_id                  = "sample"
@@ -9,14 +10,15 @@ module "infrastructure" {
     configure_gloud             = true
     common_resource_description = "This resource is created by terraform for OpenWISP deployment."
     use_cloud_sql               = false
-    use_cloud_dns               = true
+    use_cloud_dns               = false
     disable_apis_on_destroy     = false
   }
 
   openwisp_services = {
-    use_openvpn    = true
+    use_openvpn    = false
     use_freeradius = true
     setup_database = true
+    setup_fresh    = true
   }
 
   gke_node_groups = [
@@ -33,6 +35,10 @@ module "infrastructure" {
       disk_type           = "pd-standard"
       instance_image_type = "COS"
       machine_type        = "n1-standard-1"
+      oauth_scopes = [
+        "https://www.googleapis.com/auth/monitoring",
+        "https://www.googleapis.com/auth/logging.write",
+      ]
       }, {
       pool_name           = "preemptible-instance-pool"
       enable_autoscaling  = false
@@ -46,6 +52,7 @@ module "infrastructure" {
       disk_type           = "pd-standard"
       instance_image_type = "COS"
       machine_type        = "n1-standard-1"
+      oauth_scopes        = []
     }
   ]
 
@@ -56,6 +63,13 @@ module "infrastructure" {
     name = "openwisp-disk"
     type = "pd-standard"
     size = 10
+    snapshots = {
+      name             = "openwisp-snapshots"
+      hours_in_cycle   = 6
+      start_time       = "03:00"
+      retention_days   = 10
+      on_disk_deletion = "KEEP_AUTO_SNAPSHOTS"
+    }
   }
 
   gke_cluster = {
@@ -74,17 +88,35 @@ module "infrastructure" {
         display_name = "office-static-address"
         cidr_block   = "192.0.2.10/32"
       },
-      {
-        display_name = "developers-address-range"
-        cidr_block   = "192.0.2.0/24"
-      },
     ]
   }
+
+  database_cloudsql = {
+    name              = "openwisp-cloudsql-instance01"
+    tier              = "db-f1-micro"
+    username          = "admin"
+    password          = "admin"
+    database          = "openwisp_db"
+    require_ssl       = false
+    sslmode           = "disable"
+    availability_type = "ZONAL"
+    disk_size         = 10
+    disk_type         = "PD_HDD"
+    auto_backup = {
+      enabled    = true
+      start_time = "00:00"
+    }
+    maintaince = {
+      day   = 7
+      hour  = 3
+      track = "stable"
+    }
+  }
+
 
   network_config = {
     # OpenWISP deployment network options
     vpc_name                  = "openwisp-network"
-    subnet_name               = "openwisp-cluster-subnet"
     subnet_cidr               = "10.130.0.0/20"
     services_cidr_range       = "10.0.0.0/14"
     pods_cidr_range           = "10.100.0.0/14"
@@ -104,11 +136,12 @@ module "infrastructure" {
 }
 
 module "kubernetes" {
-  source                  = "atb00ker/openwisp/kubernetes"
-  version                 = "0.1.0-alpha.2"
-  ow_cluster_ready        = module.infrastructure.ow_cluster_ready
-  infrastructure_provider = module.infrastructure.infrastructure_provider
-  openwisp_services       = module.infrastructure.openwisp_services
+  source  = "atb00ker/openwisp/kubernetes"
+  version = "0.1.0-alpha.3"
+
+  ow_cluster_ready  = module.infrastructure.ow_cluster_ready
+  infrastructure    = module.infrastructure.infrastructure
+  openwisp_services = module.infrastructure.openwisp_services
 
   kubernetes_services = {
     use_cert_manger   = true
@@ -124,15 +157,15 @@ module "kubernetes" {
       limit_memory    = "100Gi"
       requests_memory = "100Mi"
     }
-    persistent_disk_name         = module.infrastructure.ow_persistent_disk.name
-    persistent_disk_type         = module.infrastructure.ow_persistent_disk.type
-    persistent_disk_size         = module.infrastructure.ow_persistent_disk.size
-    reclaim_policy               = "Retain"
-    postfix_sslcert_storage_size = "50Mi"
-    media_storage_size           = "5Gi"
-    static_storage_size          = "50Mi"
-    html_storage_size            = "100Mi"
-    postgres_storage_size        = "3Gi"
+    persistent_disk_name  = module.infrastructure.ow_persistent_disk.name
+    persistent_disk_type  = module.infrastructure.ow_persistent_disk.type
+    persistent_disk_size  = module.infrastructure.ow_persistent_disk.size
+    reclaim_policy        = "Retain"
+    sslcert_storage_size  = "50Mi"
+    media_storage_size    = "5Gi"
+    static_storage_size   = "50Mi"
+    html_storage_size     = "100Mi"
+    postgres_storage_size = "3Gi"
   }
 
   kubernetes_configmap = {
@@ -140,9 +173,6 @@ module "kubernetes" {
     # shared between all pods except the postgres pod which
     # has seperate config variable. Read about the options
     # in the documentation. (docs/ENV.md)
-    common_configmap_name             = "common-config"
-    postgres_configmap_name           = "postgres-config"
-    nfs_configmap_name                = "nfs-config"
     DASHBOARD_DOMAIN                  = "dashboard.example.com"
     CONTROLLER_DOMAIN                 = "controller.example.com"
     RADIUS_DOMAIN                     = "radius.example.com"
@@ -152,13 +182,10 @@ module "kubernetes" {
     DJANGO_ALLOWED_HOSTS              = ".example.com"
     TZ                                = "UTC"
     CERT_ADMIN_EMAIL                  = "example@example.com"
-    SSL_CERT_MODE                     = false
+    SSL_CERT_MODE                     = "External"
     SET_RADIUS_TASKS                  = true
     SET_TOPOLOGY_TASKS                = true
-    DB_NAME                           = "openwisp_db"
     DB_ENGINE                         = "django.contrib.gis.db.backends.postgis"
-    DB_USER                           = "admin"
-    DB_PASS                           = "admin"
     DB_PORT                           = 5432
     DB_OPTIONS                        = "{}"
     DJANGO_X509_DEFAULT_CERT_VALIDITY = 1825
@@ -169,6 +196,7 @@ module "kubernetes" {
     DJANGO_LEAFET_CENTER_X_AXIS       = 0
     DJANGO_LEAFET_CENTER_Y_AXIS       = 0
     DJANGO_LEAFET_ZOOM                = 1
+    DJANGO_LOG_LEVEL                  = "INFO"
     EMAIL_BACKEND                     = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST_PORT                   = 25
     EMAIL_HOST_USER                   = null
@@ -203,13 +231,13 @@ module "kubernetes" {
     NGINX_GZIP_PROXIED                = "any"
     NGINX_GZIP_MIN_LENGTH             = 1000
     NGINX_GZIP_TYPES                  = "*"
-    NGINX_HTTPS_ALLOWED_IPS           = "all"
+    NGINX_HTTPS_ALLOWED_IPS           = "10.0.0.0/8"
     NGINX_HTTP_ALLOW                  = true
     NGINX_CUSTOM_FILE                 = false
-    NINGX_REAL_REMOTE_ADDR            = "$remote_addr"
+    NINGX_REAL_REMOTE_ADDR            = "$real_ip"
     VPN_ORG                           = "default"
     VPN_NAME                          = "default"
-    VPN_CLIENT_NAME                   = "default"
+    VPN_CLIENT_NAME                   = "default-vpn-client"
     X509_NAME_CA                      = "default"
     X509_NAME_CERT                    = "default"
     X509_COUNTRY_CODE                 = "IN"
@@ -219,7 +247,6 @@ module "kubernetes" {
     X509_ORGANIZATION_UNIT_NAME       = "OpenWISP"
     X509_EMAIL                        = "certificate@example.com"
     X509_COMMON_NAME                  = "OpenWISP"
-    DB_HOST                           = "postgres"
     EMAIL_HOST                        = "postfix"
     REDIS_HOST                        = "redis"
     DASHBOARD_APP_SERVICE             = "dashboard"
@@ -235,7 +262,7 @@ module "kubernetes" {
     POSTFIX_DEBUG_MYNETWORKS          = "null"
     EXPORT_DIR                        = "/exports"
     EXPORT_OPTS                       = <<EOT
-    ${module.infrastructure.infrastructure_provider.cluster.services_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync) ${module.infrastructure.infrastructure_provider.cluster.pods_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync) ${module.infrastructure.infrastructure_provider.cluster.nodes_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync)
+    ${module.infrastructure.infrastructure.cluster.services_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync) ${module.infrastructure.infrastructure.cluster.pods_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync) ${module.infrastructure.infrastructure.cluster.nodes_cidr_range}(rw,fsid=0,insecure,no_root_squash,no_subtree_check,sync)
     EOT
   }
 
@@ -244,7 +271,7 @@ module "kubernetes" {
     restart_policy    = "Always"
     dashboard = {
       replicas       = 1
-      image          = "openwisp/openwisp-dashboard:latest"
+      image          = "openwisp/openwisp-dashboard:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -252,7 +279,7 @@ module "kubernetes" {
     }
     controller = {
       replicas       = 1
-      image          = "openwisp/openwisp-controller:latest"
+      image          = "openwisp/openwisp-controller:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -260,7 +287,7 @@ module "kubernetes" {
     }
     radius = {
       replicas       = 1
-      image          = "openwisp/openwisp-radius:latest"
+      image          = "openwisp/openwisp-radius:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -268,7 +295,7 @@ module "kubernetes" {
     }
     topology = {
       replicas       = 1
-      image          = "openwisp/openwisp-topology:latest"
+      image          = "openwisp/openwisp-topology:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -276,7 +303,7 @@ module "kubernetes" {
     }
     nginx = {
       replicas       = 1
-      image          = "openwisp/openwisp-nginx:latest"
+      image          = "openwisp/openwisp-nginx:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -284,7 +311,7 @@ module "kubernetes" {
     }
     postgres = {
       replicas       = 1
-      image          = "mdillon/postgis:10-alpine"
+      image          = "mdillon/postgis:11-alpine"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -292,7 +319,7 @@ module "kubernetes" {
     }
     postfix = {
       replicas       = 1
-      image          = "openwisp/openwisp-postfix:latest"
+      image          = "openwisp/openwisp-postfix:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -300,7 +327,7 @@ module "kubernetes" {
     }
     freeradius = {
       replicas       = 1
-      image          = "openwisp/openwisp-freeradius:latest"
+      image          = "openwisp/openwisp-freeradius:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -308,7 +335,7 @@ module "kubernetes" {
     }
     openvpn = {
       replicas       = 1
-      image          = "openwisp/openwisp-openvpn:latest"
+      image          = "openwisp/openwisp-openvpn:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -316,7 +343,7 @@ module "kubernetes" {
     }
     celery = {
       replicas       = 1
-      image          = "openwisp/openwisp-dashboard:latest"
+      image          = "openwisp/openwisp-dashboard:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"
@@ -324,7 +351,15 @@ module "kubernetes" {
     }
     celerybeat = {
       replicas       = 1
-      image          = "openwisp/openwisp-dashboard:latest"
+      image          = "openwisp/openwisp-dashboard:alpha.1"
+      limit_cpu      = 2
+      request_cpu    = 0.001
+      limit_memory   = "2Gi"
+      request_memory = "50Mi"
+    }
+    websocket = {
+      replicas       = 1
+      image          = "openwisp/openwisp-websocket:alpha.1"
       limit_cpu      = 2
       request_cpu    = 0.001
       limit_memory   = "2Gi"

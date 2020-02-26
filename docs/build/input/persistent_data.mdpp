@@ -8,7 +8,7 @@ type                         : https://www.terraform.io/docs/providers/google/r/
 size                         : https://www.terraform.io/docs/providers/google/r/compute_disk.html#size
 reclaim_policy               : https://www.terraform.io/docs/providers/kubernetes/r/storage_class.html#reclaim_policy
 postgres_storage_size        : Disk size portion to be allocated for postgres database.
-postfix_sslcert_storage_size : Disk size portion to be allocated for storing postfix data.
+sslcert_storage_size         : Disk size portion to be allocated for storing postfix sslcert data.
 media_storage_size           : Disk size portion to be allocated for user uploaded media (like floor plan).
 static_storage_size          : Disk size portion to be allocated for static data of the website.
 html_storage_size            : Disk size portion to be allocated for maintaince HTML.

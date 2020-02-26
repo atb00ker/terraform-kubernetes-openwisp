@@ -1,31 +1,9 @@
 # ConfigMap resources, find documentation in
 # official docker-openwisp repository.
 
-resource "kubernetes_config_map" "kubernetes_postgres_configmap" {
-  depends_on = [var.ow_cluster_ready]
-  metadata { name = var.kubernetes_configmap.postgres_configmap_name }
-  data = {
-    POSTGRES_DB       = var.kubernetes_configmap.DB_NAME
-    POSTGRES_USER     = var.kubernetes_configmap.DB_USER
-    POSTGRES_PASSWORD = var.kubernetes_configmap.DB_PASS
-  }
-}
-
-resource "kubernetes_config_map" "kubernetes_nfs_configmap" {
-  depends_on = [var.ow_cluster_ready]
-  metadata {
-    name      = var.kubernetes_configmap.nfs_configmap_name
-    namespace = kubernetes_namespace.nfs_server.metadata[0].name
-  }
-  data = {
-    EXPORT_OPTS = var.kubernetes_configmap.EXPORT_OPTS
-    EXPORT_DIR  = var.kubernetes_configmap.EXPORT_DIR
-  }
-}
-
 resource "kubernetes_config_map" "kubernetes_common_configmap" {
   depends_on = [var.ow_cluster_ready]
-  metadata { name = var.kubernetes_configmap.common_configmap_name }
+  metadata { name = "openwisp-common-config" }
   data = {
     DASHBOARD_DOMAIN                  = var.kubernetes_configmap.DASHBOARD_DOMAIN
     CONTROLLER_DOMAIN                 = var.kubernetes_configmap.CONTROLLER_DOMAIN
@@ -39,11 +17,16 @@ resource "kubernetes_config_map" "kubernetes_common_configmap" {
     SSL_CERT_MODE                     = var.kubernetes_configmap.SSL_CERT_MODE
     SET_RADIUS_TASKS                  = var.kubernetes_configmap.SET_RADIUS_TASKS
     SET_TOPOLOGY_TASKS                = var.kubernetes_configmap.SET_TOPOLOGY_TASKS
-    DB_NAME                           = var.kubernetes_configmap.DB_NAME
-    DB_USER                           = var.kubernetes_configmap.DB_USER
-    DB_PASS                           = var.kubernetes_configmap.DB_PASS
+    DB_HOST                           = var.infrastructure.database.host
+    DB_NAME                           = var.infrastructure.database.name
+    DB_USER                           = var.infrastructure.database.username
+    DB_PASS                           = var.infrastructure.database.password
+    DB_SSLMODE                        = var.infrastructure.database.sslmode
     DB_ENGINE                         = var.kubernetes_configmap.DB_ENGINE
     DB_PORT                           = var.kubernetes_configmap.DB_PORT
+    DB_SSLKEY                         = "/var/lib/postgres/ssl/clientkey"
+    DB_SSLCERT                        = "/var/lib/postgres/ssl/clientcert"
+    DB_SSLROOTCERT                    = "/var/lib/postgres/ssl/rootcert"
     DB_OPTIONS                        = var.kubernetes_configmap.DB_OPTIONS
     DJANGO_X509_DEFAULT_CERT_VALIDITY = var.kubernetes_configmap.DJANGO_X509_DEFAULT_CERT_VALIDITY
     DJANGO_X509_DEFAULT_CA_VALIDITY   = var.kubernetes_configmap.DJANGO_X509_DEFAULT_CA_VALIDITY
@@ -53,6 +36,7 @@ resource "kubernetes_config_map" "kubernetes_common_configmap" {
     DJANGO_LEAFET_CENTER_X_AXIS       = var.kubernetes_configmap.DJANGO_LEAFET_CENTER_X_AXIS
     DJANGO_LEAFET_CENTER_Y_AXIS       = var.kubernetes_configmap.DJANGO_LEAFET_CENTER_Y_AXIS
     DJANGO_LEAFET_ZOOM                = var.kubernetes_configmap.DJANGO_LEAFET_ZOOM
+    DJANGO_LOG_LEVEL                  = var.kubernetes_configmap.DJANGO_LOG_LEVEL
     EMAIL_BACKEND                     = var.kubernetes_configmap.EMAIL_BACKEND
     EMAIL_HOST_PORT                   = var.kubernetes_configmap.EMAIL_HOST_PORT
     EMAIL_HOST_USER                   = var.kubernetes_configmap.EMAIL_HOST_USER
@@ -103,7 +87,6 @@ resource "kubernetes_config_map" "kubernetes_common_configmap" {
     X509_ORGANIZATION_UNIT_NAME       = var.kubernetes_configmap.X509_ORGANIZATION_UNIT_NAME
     X509_EMAIL                        = var.kubernetes_configmap.X509_EMAIL
     X509_COMMON_NAME                  = var.kubernetes_configmap.X509_COMMON_NAME
-    DB_HOST                           = var.kubernetes_configmap.DB_HOST
     EMAIL_HOST                        = var.kubernetes_configmap.EMAIL_HOST
     REDIS_HOST                        = var.kubernetes_configmap.REDIS_HOST
     DASHBOARD_APP_SERVICE             = var.kubernetes_configmap.DASHBOARD_APP_SERVICE
@@ -117,5 +100,54 @@ resource "kubernetes_config_map" "kubernetes_common_configmap" {
     TOPOLOGY_APP_PORT                 = var.kubernetes_configmap.TOPOLOGY_APP_PORT
     DASHBOARD_URI                     = var.kubernetes_configmap.DASHBOARD_URI
     POSTFIX_DEBUG_MYNETWORKS          = var.kubernetes_configmap.POSTFIX_DEBUG_MYNETWORKS
+  }
+}
+
+resource "kubernetes_config_map" "kubernetes_openwisp_postgres_configmap" {
+  depends_on = [var.ow_cluster_ready]
+  metadata { name = "openwisp-postgres-config" }
+  data = {
+    POSTGRES_DB       = kubernetes_config_map.kubernetes_common_configmap.data.DB_NAME
+    POSTGRES_USER     = kubernetes_config_map.kubernetes_common_configmap.data.DB_USER
+    POSTGRES_PASSWORD = kubernetes_config_map.kubernetes_common_configmap.data.DB_PASS
+  }
+}
+
+resource "kubernetes_config_map" "kubernetes_postgres_configmap" {
+  depends_on = [var.ow_cluster_ready]
+  metadata { name = "postgres-config" }
+  data = {
+    PGDATABASE    = kubernetes_config_map.kubernetes_common_configmap.data.DB_NAME
+    PGUSER        = kubernetes_config_map.kubernetes_common_configmap.data.DB_USER
+    PGPASSWORD    = kubernetes_config_map.kubernetes_common_configmap.data.DB_PASS
+    PGHOST        = kubernetes_config_map.kubernetes_common_configmap.data.DB_HOST
+    PGPORT        = kubernetes_config_map.kubernetes_common_configmap.data.DB_PORT
+    PGSSLMODE     = kubernetes_config_map.kubernetes_common_configmap.data.DB_SSLMODE
+    PGSSLCERT     = kubernetes_config_map.kubernetes_common_configmap.data.DB_SSLCERT
+    PGSSLKEY      = kubernetes_config_map.kubernetes_common_configmap.data.DB_SSLKEY
+    PGSSLROOTCERT = kubernetes_config_map.kubernetes_common_configmap.data.DB_SSLROOTCERT
+  }
+}
+
+resource "kubernetes_config_map" "kubernetes_nfs_configmap" {
+  depends_on = [var.ow_cluster_ready]
+  metadata {
+    name      = "openwisp-nfs-config"
+    namespace = kubernetes_namespace.nfs_server.metadata[0].name
+  }
+  data = {
+    EXPORT_OPTS = var.kubernetes_configmap.EXPORT_OPTS
+    EXPORT_DIR  = var.kubernetes_configmap.EXPORT_DIR
+  }
+}
+
+resource "kubernetes_secret" "postgresql_certificates" {
+  metadata {
+    name = "postgresql-certificates"
+  }
+  data = {
+    clientcert = var.infrastructure.database.client_cert
+    clientkey  = var.infrastructure.database.client_key
+    rootcert   = var.infrastructure.database.ca_cert
   }
 }

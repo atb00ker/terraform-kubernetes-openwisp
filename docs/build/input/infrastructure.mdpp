@@ -1,4 +1,4 @@
-### infrastructure_provider
+### infrastructure
 
 Details about the infrastructure.
 
@@ -16,4 +16,14 @@ services_cidr_range             : Address range for ClusterIP services.
 endpoint                        : Kubernetes cluster endpoint IP address. (example: 192.168.2.25)
 ca_certificate                  : ca_certificate of the cluster that needs to be decoded in base64 for authentication.
 access_token                    : Access token required for authentication to perform actions in the cluster.
+database:
+enabled                         : Flag for cloud provided database being used. (Like Google Cloud SQL)
+sslmode                         : [PSQL database sslmodes](https://www.postgresql.org/docs/9.1/libpq-ssl.html)
+ca_cert                         : Contents of the server certificate file
+client_cert                     : Contents of the client certificate file
+client_key                      : Contents of the client private key
+username                        : Username to login to database
+password                        : Password to login to database
+name                            : Name of the database to be used by openwisp
+host                            : IP address of the database server
 ```

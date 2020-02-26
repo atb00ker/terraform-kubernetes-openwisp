@@ -4,7 +4,7 @@ The `eight` input variables are docuemented below:
 
 !TOC
 
-!INCLUDE "docs/build/input/infrastructure_provider.mdpp"
+!INCLUDE "docs/build/input/infrastructure.mdpp"
 !INCLUDE "docs/build/input/kubernetes_services.mdpp"
 !INCLUDE "docs/build/input/ow_cluster_ready.mdpp"
 !INCLUDE "docs/build/input/ow_kubectl_ready.mdpp"

@@ -8,4 +8,6 @@ use_freeradius : (Boolean) Setup freeradius inside cluster.
 setup_database : (Boolean) Setup database inside cluster. You would want to
                     set this as false when you have your own database server or
                     you are using cloud SQL.
+setup_fresh    : (Boolean) Flag to initial setup of openwisp. Only required when you
+                    are setting up openwisp & openwisp-database for the first time.
 ```

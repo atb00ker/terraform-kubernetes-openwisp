@@ -1,6 +1,6 @@
 # Contains all the variables used in this module.
 
-variable "infrastructure_provider" {
+variable "infrastructure" {
   type = object({
     name                            = string
     http_loadbalancer_name          = string
@@ -14,6 +14,17 @@ variable "infrastructure_provider" {
       nodes_cidr_range    = string
       pods_cidr_range     = string
       services_cidr_range = string
+    })
+    database = object({
+      enabled     = bool
+      sslmode     = string
+      ca_cert     = string
+      client_cert = string
+      client_key  = string
+      username    = string
+      password    = string
+      name        = string
+      host        = string
     })
   })
   description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
@@ -43,6 +54,7 @@ variable "openwisp_services" {
     use_openvpn    = bool
     use_freeradius = bool
     setup_database = bool
+    setup_fresh    = bool
   })
   description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
 }
@@ -56,26 +68,21 @@ variable "persistent_data" {
       limit_memory    = string
       requests_memory = string
     })
-    persistent_disk_name         = string
-    persistent_disk_type         = string
-    persistent_disk_size         = number
-    reclaim_policy               = string
-    postgres_storage_size        = string
-    postfix_sslcert_storage_size = string
-    media_storage_size           = string
-    static_storage_size          = string
-    html_storage_size            = string
+    persistent_disk_name  = string
+    persistent_disk_type  = string
+    persistent_disk_size  = number
+    reclaim_policy        = string
+    postgres_storage_size = string
+    sslcert_storage_size  = string
+    media_storage_size    = string
+    static_storage_size   = string
+    html_storage_size     = string
   })
   description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
 }
 
 variable "kubernetes_configmap" {
   type = object({
-    common_configmap_name             = string
-    postgres_configmap_name           = string
-    nfs_configmap_name                = string
-    EXPORT_DIR                        = string
-    EXPORT_OPTS                       = string
     DASHBOARD_DOMAIN                  = string
     CONTROLLER_DOMAIN                 = string
     RADIUS_DOMAIN                     = string
@@ -85,15 +92,12 @@ variable "kubernetes_configmap" {
     DJANGO_ALLOWED_HOSTS              = string
     TZ                                = string
     CERT_ADMIN_EMAIL                  = string
-    SSL_CERT_MODE                     = bool
+    SSL_CERT_MODE                     = string
     SET_RADIUS_TASKS                  = bool
     SET_TOPOLOGY_TASKS                = bool
-    DB_NAME                           = string
     DB_ENGINE                         = string
     DB_PORT                           = number
     DB_OPTIONS                        = string
-    DB_USER                           = string
-    DB_PASS                           = string
     DJANGO_X509_DEFAULT_CERT_VALIDITY = number
     DJANGO_X509_DEFAULT_CA_VALIDITY   = number
     DJANGO_CORS_ORIGIN_ALLOW_ALL      = bool
@@ -102,6 +106,7 @@ variable "kubernetes_configmap" {
     DJANGO_LEAFET_CENTER_X_AXIS       = number
     DJANGO_LEAFET_CENTER_Y_AXIS       = number
     DJANGO_LEAFET_ZOOM                = number
+    DJANGO_LOG_LEVEL                  = string
     EMAIL_BACKEND                     = string
     EMAIL_HOST_PORT                   = number
     EMAIL_HOST_USER                   = string
@@ -152,7 +157,6 @@ variable "kubernetes_configmap" {
     X509_ORGANIZATION_UNIT_NAME       = string
     X509_EMAIL                        = string
     X509_COMMON_NAME                  = string
-    DB_HOST                           = string
     EMAIL_HOST                        = string
     REDIS_HOST                        = string
     DASHBOARD_APP_SERVICE             = string
@@ -166,6 +170,8 @@ variable "kubernetes_configmap" {
     TOPOLOGY_APP_PORT                 = number
     DASHBOARD_URI                     = string
     POSTFIX_DEBUG_MYNETWORKS          = string
+    EXPORT_DIR                        = string
+    EXPORT_OPTS                       = string
   })
   description = "Find documentation here: https://github.com/atb00ker/terraform-kubernetes-openwisp/blob/master/docs/input.md."
 }
@@ -271,6 +277,14 @@ variable "openwisp_deployments" {
       request_memory = string
     })
     redis = object({
+      replicas       = number
+      image          = string
+      limit_cpu      = number
+      request_cpu    = number
+      limit_memory   = string
+      request_memory = string
+    })
+    websocket = object({
       replicas       = number
       image          = string
       limit_cpu      = number
