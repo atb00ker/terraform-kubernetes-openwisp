@@ -151,3 +151,13 @@ resource "kubernetes_secret" "postgresql_certificates" {
     rootcert   = var.infrastructure.database.ca_cert
   }
 }
+
+resource "kubernetes_secret" "postfix_certificates" {
+  metadata {
+    name = "postfix-certificates"
+  }
+  data = {
+    cert = ""
+    key  = ""
+  }
+}

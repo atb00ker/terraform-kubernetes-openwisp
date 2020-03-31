@@ -1,24 +1,57 @@
 # All the deployments for OpenWISP services
 
 # Init Job(s)
-resource "kubernetes_job" "install_postgis_on_db" {
-  count = var.infrastructure.database.enabled && var.openwisp_services.setup_fresh ? 1 : 0
+
+locals {
+  _postgres_container = var.infrastructure.database.enabled && var.openwisp_services.setup_fresh ? [
+    {
+      "name" : "install-postgis",
+      "image" : "jbergknoff/postgresql-client",
+      "args" : ["--command", "CREATE EXTENSION postgis;"],
+      "config_map" : kubernetes_config_map.kubernetes_postgres_configmap.metadata.0.name,
+      "volume_name" : "postgresql-certificates",
+      "volume_mount_path" : "/var/lib/postgres/ssl/",
+    }
+  ] : []
+  _containers = [
+    {
+      "name" : "create-postfix-certs",
+      "image" : var.openwisp_deployments.postfix.image,
+      "args" : ["openssl", "req", "-new", "-nodes", "-x509", "-subj", "/CN=openwisp-postfix", "-days", "3650", "-keyout", "/etc/ssl/mail/openwisp.mail.key", "-out", "/etc/ssl/mail/openwisp.mail.crt", "-extensions", "v3_ca"],
+      "config_map" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name,
+      "volume_name" : "postfix-certificates",
+      "volume_mount_path" : "/etc/ssl/mail/",
+    }
+  ]
+  setup_containers = concat(local._containers, local._postgres_container)
+}
+
+resource "kubernetes_job" "setup_openwisp" {
   metadata { name = "setup-openwisp" }
   spec {
     template {
       metadata {}
       spec {
-        container {
-          name  = "install-postgis"
-          image = "jbergknoff/postgresql-client"
-          args  = ["--command", "CREATE EXTENSION postgis;"]
-          env_from {
-            config_map_ref { name = kubernetes_config_map.kubernetes_postgres_configmap.metadata.0.name }
-          }
-          volume_mount {
-            name       = "postgresql-certificates"
-            mount_path = "/var/lib/postgres/ssl/"
-            read_only  = true
+        dynamic "container" {
+          for_each = [for container_details in local.setup_containers : {
+            name              = container_details.name
+            image             = container_details.image
+            args              = container_details.args
+            config_map        = container_details.config_map
+            volume_name       = container_details.volume_name
+            volume_mount_path = container_details.volume_mount_path
+          }]
+          content {
+            name  = container.value.name
+            image = container.value.image
+            args  = container.value.args
+            env_from {
+              config_map_ref { name = container.value.config_map }
+            }
+            volume_mount {
+              name       = container.value.volume_name
+              mount_path = container.value.volume_mount_path
+            }
           }
         }
         volume {
@@ -26,6 +59,23 @@ resource "kubernetes_job" "install_postgis_on_db" {
           secret {
             secret_name  = "postgresql-certificates"
             default_mode = "0600"
+          }
+        }
+        volume {
+          name = "postfix-certificates"
+          secret {
+            secret_name  = "postfix-certificates"
+            # Looks like file is not editable
+            # https://github.com/kubernetes/kubernetes/issues/62099
+            default_mode = "0600"
+            items {
+              key  = "cert"
+              path = "openwisp.mail.crt"
+            }
+            items {
+              key  = "key"
+              path = "openwisp.mail.key"
+            }
           }
         }
         restart_policy = "Never"
@@ -149,7 +199,7 @@ locals {
       "name" : "openwisp-postfix", "app" : "openwisp-postfix",
       "deployment_config" : var.openwisp_deployments.postfix
       "configmap" : kubernetes_config_map.kubernetes_common_configmap.metadata.0.name
-      "volume_mount" : [local._volume_mounts.postfix],
+      "volume_mount" : [],
       "readiness_technique" : null, "liveness_technique" : null,
       "openports" : [], "capabilities" : [], "env" : [],
       "postgres_connection" : [],
@@ -171,7 +221,7 @@ resource "kubernetes_deployment" "openwisp_deployments" {
     var.ow_cluster_ready,
     kubernetes_persistent_volume_claim.openwisp_persistent_volume_claim,
     kubernetes_deployment.nfs_server,
-    kubernetes_job.install_postgis_on_db,
+    kubernetes_job.setup_openwisp,
   ]
   count = length(local.openwisp_deployments)
   metadata { name = local.openwisp_deployments[count.index].name }
@@ -205,6 +255,14 @@ resource "kubernetes_deployment" "openwisp_deployments" {
               name       = "postgresql-certificates"
               mount_path = "/var/lib/postgres/ssl/"
               read_only  = true
+            }
+          }
+
+          dynamic "volume_mount" {
+            for_each = local.openwisp_deployments[count.index].app == "openwisp-postfix" ? [1] : []
+            content {
+              name       = "postfix-certificates"
+              mount_path = "/etc/ssl/mail/"
             }
           }
 
@@ -290,6 +348,26 @@ resource "kubernetes_deployment" "openwisp_deployments" {
             secret {
               secret_name  = "postgresql-certificates"
               default_mode = "0600"
+            }
+          }
+        }
+
+        dynamic "volume" {
+          for_each = local.openwisp_deployments[count.index].app == "openwisp-postfix" ? [1] : []
+          content {
+            name = "postfix-certificates"
+            secret {
+              secret_name  = "postfix-certificates"
+              default_mode = "0600"
+              optional     = false
+              items {
+                key  = "cert"
+                path = "openwisp.mail.crt"
+              }
+              items {
+                key  = "key"
+                path = "openwisp.mail.key"
+              }
             }
           }
         }
